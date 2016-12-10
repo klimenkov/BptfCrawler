@@ -1,9 +1,8 @@
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.IOException;
+import java.util.Locale;
 
 /**
  * Created by klimenkov on 10.12.2016.
@@ -22,7 +21,7 @@ public class BptfPage {
     public BptfPage(String url) {
         this.url = url;
 
-        Document document = tryLoad(url);
+        Document document = Loader.tryLoad(url);
         Element infoDiv = document.select("div[data-name]").get(0);
 
         itemName = infoDiv.attr("data-name");
@@ -50,6 +49,16 @@ public class BptfPage {
         }
     }
 
+    public double keyPriceFromSelling() {
+        return topSellPrice != 0.0 ? Pricing.addComission(scmPriceUsd) / topSellPrice : 0.0;
+    }
+
+    public double keyPriceFromBuying() {
+        double min = Math.min(bptfPrice, topBuyPrice);
+
+        return min != 0.0 ? scmPriceUsd / min : 0.0;
+    }
+
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();
@@ -66,7 +75,7 @@ public class BptfPage {
         stringBuilder.append(scmPriceUsd);
         stringBuilder.append(System.lineSeparator());
 
-        stringBuilder.append("BPTF Price, $:\t\t");
+        stringBuilder.append("BPTF Price:\t\t\t");
         stringBuilder.append(bptfPrice);
         stringBuilder.append(System.lineSeparator());
 
@@ -81,19 +90,20 @@ public class BptfPage {
         return stringBuilder.toString();
     }
 
-    private static Document tryLoad(String url) {
-        boolean loadSuccess = false;
-        Document document = null;
+    public String toHtmlTr() {
+        StringBuilder sb = new StringBuilder();
 
-        while (!loadSuccess) {
-            try {
-                document = Jsoup.connect(url).userAgent("Chrome").maxBodySize(0).get();
-                loadSuccess = true;
-            } catch (IOException e) {
-                System.out.println(e.getMessage());
-            }
-        }
+        sb.append("<tr>");
+        sb.append("<td><a href=\"" + url + "\">" + itemName + "</a></td>");
+        sb.append("<td>" + itemQuality + "</td>");
+        sb.append("<td>" + scmPriceUsd + "</td>");
+        sb.append("<td>" + bptfPrice + "</td>");
+        sb.append("<td>" + topSellPrice + "</td>");
+        sb.append("<td>" + topBuyPrice + "</td>");
+        sb.append("<td>" + String.format(Locale.US, "%.3f", keyPriceFromSelling()) + "</td>");
+        sb.append("<td>" + String.format(Locale.US, "%.3f", keyPriceFromBuying()) + "</td>");
+        sb.append("</tr>");
 
-        return document;
+        return sb.toString();
     }
 }
